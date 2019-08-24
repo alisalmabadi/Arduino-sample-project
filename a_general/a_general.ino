@@ -8,17 +8,37 @@ LiquidCrystal lcd(8, 9, 4, 5, 6, 7);
 //LCDKeypad lcd;
 
 
-#define DAYS 0
+//#define DAYS 0
 #define HOURS 1
 #define MINUTES 2
 #define SECONDS 3
 
 // The time model
 
-byte dd = 0;
+//byte dd = 0;
 byte hh = 0;
 byte mm = 0;
 byte ss = 0;
+/*** edit clock ***/
+byte oldhh = 0;
+byte newh = 0;
+byte orgh = 0;
+
+byte oldmm = 0;
+byte newm = 0;
+byte orgm = 0;
+
+
+byte oldss = 0;
+byte news = 0;
+byte orgs = 0;
+/*** edit clock ***/
+
+/*
+unsigned long upusertime = 0;
+unsigned long downusertime = 0;
+unsigned long newmillis = 0;
+*/
 
 unsigned int settime = 0;
 
@@ -26,9 +46,10 @@ unsigned int settime = 0;
 String menuItems[] = {"Select Modes", "Setting", "Home"};
 String modeItems[] = {"Herbs", "Veggies", "24h ON", "24h OFF", "Back"};
 String settItems[] = {"Light : ","t : ","Back"};
-
+char* Edit = "Edit";
 bool Light = true;
 bool Clock = false;
+bool EditClock = false;
 int button  = 0;
 bool KeyPress = false;
 int activeMenu = 0;
