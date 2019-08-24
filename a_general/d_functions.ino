@@ -4,18 +4,26 @@ void CalculateTime() {
 
   time /= 1000;
   ss = time % 60;
+  ss += orgs;
+  ss %=60;
 
   time -= ss;
   time /= 60;
   mm = time % 60;
-
+  mm += orgm;
+  mm %=60;
+  
   time -= mm;
   time /= 60;
   hh = time % 24;
-
+  hh += orgh;
+  hh %= 24;
+  
+/*
   time -= hh;
   time /= 24;
   dd = time;
+  */
 }
 
 // Convert Analoge voltage to button number
@@ -37,13 +45,16 @@ int evaluateButton(int x) {
 
 // Check the button that pressed and actuate
 void buttoncheck() {
-  Serial.print("button check\n");
+  Serial.print("button check \n");
   readKey = analogRead(0);
   if (readKey < 790 && KeyPress == false) {
     lcd.clear();
     KeyPress = true;
     button = evaluateButton(readKey);
     Serial.print(button);
+    Serial.print("\n");
+
+    
     switch (state) {
       case 0: // ********** Home Screen **********
         if (button == 1 || button == 5) { // Right or Select
@@ -132,33 +143,130 @@ void buttoncheck() {
             break;
         }
         break;
-      case 3: // ********** Setting **********
+      case 3: // ********** Setting **********/
         switch (button) {
           case 2: // ***** Up *****
+          if(!EditClock){
             if (pointerLoc[3] > 0) {
               pointerLoc[3]--;
             } else if (pageLoc[3] > 0) {
               pageLoc[3]--;
             }
+          }else{ /***EditClock is true so edit time based on settime***/
+             switch (settime){
+              case 1: //edit hour 
+               oldhh = hh;
+               newh = oldhh;
+               newh++;
+               newh %= 24;
+               orgh = newh - hh;
+                CalculateTime();   
+                break;
+              case 2: //edit minute
+                oldmm = mm;
+                newm = oldmm;      
+               newm++;
+               newm %= 60;
+               orgm = newm - mm;
+               CalculateTime();
+               
+                break;
+              case 3: //edit seconds
+               oldss = ss;
+                news = oldss;
+               news++;
+               news %= 60;
+               orgs = news - ss;
+               CalculateTime();
+                break;
+             }
+             
+          }
             break;
           case 3: // ***** Down *****
+            if(!EditClock){
             if (pointerLoc[3] < 1) {
               pointerLoc[3]++;
-            } else if ((pageLoc[3] + 1) < (SettItemNum - 1)) {
+              } else if ((pageLoc[3] + 1) < (SettItemNum - 1)) {
               pageLoc[3]++;
+             }
+            }else{ /***EditClock is true so edit time based on settime***/
+              switch (settime){
+              case 1: //edit hour 
+               oldhh = hh;
+               newh = oldhh;
+               newh--;
+               if (newh == -1) {newh = 23;}
+               newh %= 24;
+               orgh = newh - hh;
+               CalculateTime();
+                break;
+              case 2: //edit minute
+                oldmm = mm;
+               newm = oldmm;
+               newm--;
+               newm %= 60;
+               if (newm == -1){newm = 29;}
+               newm %= 60;
+               orgm = newm - mm;
+               CalculateTime();
+             
+                break;
+              case 3: //edit seconds
+               oldss = ss;
+               news = oldss;
+               news--;          
+               if (news == -1) {news = 59;}
+               news %= 60;
+               orgs = news - ss;
+               CalculateTime();
+               break;
+             }
             }
             break;
           case 4: // ***** Left *****
+            if(!EditClock){
             state = 1;
+             }else{ /*** if EditClock is true move left for editting values ***/
+                if(settime == 3){
+                  settime=2;
+                }else if(settime == 2){
+                  settime=1;
+                }else if(settime == 1){
+                  settime=3;
+                }
+             }
             break;
-          case 1: // ***** Right *****
+          case 1: // ***** Right And Select *****
+          if(EditClock == true){ /*** if EditClock is true move right for editting values ***/
+               if(settime == 3){
+                  settime=1;
+                }else if(settime == 2){
+                  settime=3;
+                }else if(settime == 1){
+                  settime=2;
+                }
+                break;
+          }
+              
           case 5:
             switch (pageLoc[3] + pointerLoc[3]) {
               case 0:
-                Light = ~Light;
+                if(Light == true){
+                   Light = false;
+                }else{
+                   Light = true;
+                }
                 break;
-              case 1:
-                ;
+                
+              case 1: /**set edit on or off(set value) **/
+                 if(EditClock == true){
+                  EditClock = false;
+                  settime = 0;
+                }else{
+                  EditClock = true;
+                  settime = 1;
+                }
                 break;
               case 2:
                 state = 1;
@@ -178,10 +286,12 @@ void buttoncheck() {
 void Display() {
   switch (state) {
     case 0: // ********** Home **********
+    Serial.print("Home Screen \n");
+     CalculateTime();
       lcd.setCursor(1, 0);
       lcd.print("Atrapiece");
       char time[17];
-      sprintf(time, "%02i days %02i:%02i:%02i", dd, hh, mm, ss);
+      sprintf(time, "Time : %02i:%02i:%02i",hh, mm, ss);
       lcd.setCursor(0, 1);
       lcd.print(time);
       break;
@@ -230,17 +340,25 @@ void Display() {
       } else {
         settItems[0] = "Light : OFF";
       }
-
-      char Time[17];
-      sprintf(Time, "%02i days %02i:%02i:%02i", dd, hh, mm, ss);
-      settItems[1] = Time;
-
+      
       lcd.setCursor(1, 0);
       lcd.print(settItems[pageLoc[3]]);
-
+      if(EditClock == false){
+      timesetting(settime);
+      char Time[17];
+      sprintf(Time,"%s:%02i:%02i:%02i",Edit,hh, mm, ss);
+      settItems[1] = Time;
       lcd.setCursor(1, 1);
       lcd.print(settItems[pageLoc[3] + 1]);
-
+     }else{
+      timesetting(settime);
+      char Time[17];
+      sprintf(Time,"%s:%02i:%02i:%02i",Edit,hh, mm, ss);
+      settItems[1] = Time;
+         lcd.setCursor(1, 1);
+         lcd.print(settItems[pageLoc[3] + 1]);
+      }
+     
       lcd.setCursor(0, pointerLoc[3]);
       lcd.write(byte(0));
 
@@ -252,6 +370,34 @@ void Display() {
         lcd.setCursor(15, 1);
         lcd.write(byte(2));
       }
+     
       break;
   }
 }
+
+void timesetting(int settime) {
+  switch(settime){
+    case 0:
+      Edit = "Edit";
+      break;
+    case 1:
+       Edit = "Hour";
+      break;
+    case 2:
+       Edit = "Min";
+      break;
+    case 3:
+       Edit = "Sec ";
+      break;      
+  }
+}
+
+/*un used function in second method**
+long CalculateMillis(long orgh,long orgm,long orgs){
+//hour milli seconds
+newmillis = orgh * 60 * 60 * 1000;
+newmillis +=orgm * 60 * 1000;
+newmillis += orgs * 1000;
+ return newmillis;
+}
+**/
